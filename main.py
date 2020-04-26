@@ -3,7 +3,8 @@ from selenium.webdriver.common.keys import Keys
 import time
 import json
 import youtube_dl
-import getpass
+from getpass import getpass
+from sys import platform
 
 config = {
     'EMAIL': '',
@@ -16,13 +17,20 @@ login_url = 'https://video.dtu.dk/user/login'
 def main():
     # Prompt for login details
     config['EMAIL'] = input("Please enter your DTU email (xxx@dtu.dk or s123456@student.dtu.dk): ")
-    config['PASSWORD'] = getpass.getpass("Please enter your DTU password: ")
+    config['PASSWORD'] = getpass("Please enter your DTU password: ")
 
     # Prompt for video URL
     video_url = input("Please enter the video URL: ")
     print("Hold tight, magic is happening!")
 
-    driver = webdriver.Chrome('./chromedriver')
+    if platform == "linux" or platform == "linux2" or platform == "darwin":
+        # If Linux of MacOS
+        driver = webdriver.Chrome('./chromedriver')
+    elif platform =="win32":
+        # Or if Windows
+        driver = webdriver.Chrome('./chromedriver.exe')
+    else:
+        raise Exception("Unknown operating system.")
     driver.get(login_url)
     assert 'Login - DTU - MediaSpace' in driver.title
     elem = driver.find_element_by_name('Login[username]')
