@@ -10,7 +10,7 @@ Python script for downloading videos on video.dtu.dk
 
 ## Initial setup
 1. Download the latest release from the [releases tab](https://github.com/YoonAddicting/DTU-Video-Downloader/releases).
-2. Download the newest version of the chromedriver from https://chromedriver.chromium.org/downloads for your operating system.
+2. Download the corrosponding version of the chromedriver from https://chromedriver.chromium.org/downloads for Chrome version and your operating system.
 3. Place the above file in the same folder as the *main.py* file.
 
 ## Usage
