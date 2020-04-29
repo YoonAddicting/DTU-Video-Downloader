@@ -23,12 +23,16 @@ def main():
     video_url = input("Please enter the video URL: ")
     print("Hold tight, magic is happening!")
 
+    # Specify window to not open
+    options = webdriver.ChromeOptions()
+    options.add_argument("headless")
+
     if platform == "linux" or platform == "linux2" or platform == "darwin":
         # If Linux of MacOS
-        driver = webdriver.Chrome('./chromedriver')
+        driver = webdriver.Chrome('./chromedriver', options=options)
     elif platform =="win32":
         # Or if Windows
-        driver = webdriver.Chrome('./chromedriver.exe')
+        driver = webdriver.Chrome('./chromedriver.exe', options=options)
     else:
         raise Exception("Unknown operating system.")
     driver.get(login_url)
