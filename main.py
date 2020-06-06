@@ -23,16 +23,12 @@ def main():
     video_url = input("Please enter the video URL: ")
     print("Hold tight, magic is happening!")
 
-    # Specify window to not open
-    options = webdriver.ChromeOptions()
-    options.add_argument("headless")
-
     if platform == "linux" or platform == "linux2" or platform == "darwin":
         # If Linux of MacOS
-        driver = webdriver.Chrome('./chromedriver', options=options)
+        driver = webdriver.Chrome('./chromedriver')
     elif platform =="win32":
         # Or if Windows
-        driver = webdriver.Chrome('./chromedriver.exe', options=options)
+        driver = webdriver.Chrome('./chromedriver.exe')
     else:
         raise Exception("Unknown operating system.")
     driver.get(login_url)
@@ -58,18 +54,59 @@ def main():
 
     # Load video page
     driver.get(video_url)
-    driver.switch_to.frame(driver.find_element_by_css_selector('#kplayer_ifp'))
-    # Get the script
-    script = driver.find_element_by_css_selector('body script:nth-child(2)').get_attribute("innerHTML")
-    data = (script.splitlines()[2])[37:-1]
-    # Load the data into json format
-    js = json.loads(data)
-    dl_link = js["entryResult"]["meta"]["downloadUrl"]
-    title = js["entryResult"]["meta"]["name"]
+    
+    #Check if video_url starts with video.dtu.dk/category/. In that case, we should download all of videos in said category.
+    if 'video.dtu.dk/category/' in video_url:
+        j = True
+        multiple_videos = True
+        while j:
+            driver.execute_script("window.scrollTo(0, document.body.scrollHeight);") #Scroll down 
+            time.sleep(2)
+            try:   
+                elem = driver.find_element_by_xpath('//*[@id="channelGallery"]/div/a')
+                elem.click()
+            except: #Perhaps some errortype here?
+                #No more media items to load. Scroll back to the top.
+                j = False
+                driver.execute_script("window.scrollTo(0, 0);")
+                continue
+        
+        #Now, we want to extract all of the URL from the gallery links.
+        j = True
+        idx = 1
+        video_urls = []
+        while j:
+            try:
+                elem = driver.find_element_by_xpath('//*[@id="gallery"]/li[' + str(idx) + ']/div[1]/div[1]/div/p/a')
+                driver.execute_script("arguments[0].scrollIntoView()", elem)
+                link = elem.get_attribute('href')
+                video_urls.append(link)
+                idx = idx + 1
+            except:
+                #All links are fetched. Scroll back to top.
+                j = False
+                driver.execute_script("window.scrollTo(0, 0);")
+                continue
+    else:
+        multiple_videos = False
+        video_urls = [video_url] #Make a list with a single element.
+    
+    for url in video_urls:
+        #Loop over the videos to be downloaded.
+        if multiple_videos: driver.get(url) #otherwise, we're already on that page.
+        
+        driver.switch_to.frame(driver.find_element_by_css_selector('#kplayer_ifp'))
+        # Get the script
+        script = driver.find_element_by_css_selector('body script:nth-child(2)').get_attribute("innerHTML")
+        data = (script.splitlines()[2])[37:-1]
+        # Load the data into json format
+        js = json.loads(data)
+        dl_link = js["entryResult"]["meta"]["downloadUrl"]
+        title = js["entryResult"]["meta"]["name"]
     # Download video
-    ydl_opts = {"outtmpl": title + ".mp4"}
-    with youtube_dl.YoutubeDL(ydl_opts) as ydl:
-        ydl.download([dl_link])
+        ydl_opts = {"outtmpl": title + ".mp4"}
+        with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+            ydl.download([dl_link])
 
 
 main()
