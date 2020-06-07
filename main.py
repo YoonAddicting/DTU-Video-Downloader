@@ -20,12 +20,8 @@ def main():
     config['PASSWORD'] = getpass("Please enter your DTU password: ")
 
     # Prompt for video URL
-    video_url = input("Please enter the video URL: ")
+    video_url = input("Please enter the video or category URL: ")
     print("Hold tight, magic is happening!")
-
-    # Specify window to not open
-    options = webdriver.ChromeOptions()
-    options.add_argument("headless")
 
     # Specify window to not open
     options = webdriver.ChromeOptions()
@@ -63,46 +59,49 @@ def main():
 
     # Load video page
     driver.get(video_url)
+
+    video_index = 1
     
-    #Check if video_url starts with video.dtu.dk/category/. In that case, we should download all of videos in said category.
+    # Check if video_url starts with video.dtu.dk/category/. In that case, we should download all of videos in said category.
     if 'video.dtu.dk/category/' in video_url:
-        j = True
+        print("Loading videos from category link...")
+        loading_more_media = True
         multiple_videos = True
-        while j:
-            driver.execute_script("window.scrollTo(0, document.body.scrollHeight);") #Scroll down 
+        while loading_more_media:
+            driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")  # Scroll down
             time.sleep(2)
             try:   
                 elem = driver.find_element_by_xpath('//*[@id="channelGallery"]/div/a')
                 elem.click()
-            except: #Perhaps some errortype here?
-                #No more media items to load. Scroll back to the top.
-                j = False
+            except:  # Perhaps some error type here?
+                # No more media items to load. Scroll back to the top.
+                loading_more_media = False
                 driver.execute_script("window.scrollTo(0, 0);")
                 continue
         
-        #Now, we want to extract all of the URL from the gallery links.
-        j = True
-        idx = 1
+        # Now, we want to extract all of the URL from the gallery links.
+        loading_more_media = True
         video_urls = []
-        while j:
+        while loading_more_media:
             try:
-                elem = driver.find_element_by_xpath('//*[@id="gallery"]/li[' + str(idx) + ']/div[1]/div[1]/div/p/a')
+                elem = driver.find_element_by_xpath('//*[@id="gallery"]/li[' + str(video_index) + ']/div[1]/div[1]/div/p/a')
                 driver.execute_script("arguments[0].scrollIntoView()", elem)
                 link = elem.get_attribute('href')
                 video_urls.append(link)
-                idx = idx + 1
-            except:
-                #All links are fetched. Scroll back to top.
-                j = False
+                video_index = video_index + 1
+            except:  # Perhaps some error type here?
+                # All links are fetched. Scroll back to top.
+                loading_more_media = False
                 driver.execute_script("window.scrollTo(0, 0);")
                 continue
     else:
         multiple_videos = False
-        video_urls = [video_url] #Make a list with a single element.
-    
+        video_urls = [video_url]  # Make a list with a single element.
+    if multiple_videos: video_index = video_index - 1  # Correct index to be 0-indexed
+
     for url in video_urls:
-        #Loop over the videos to be downloaded.
-        if multiple_videos: driver.get(url) #otherwise, we're already on that page.
+        # Loop over the videos to be downloaded.
+        if multiple_videos: driver.get(url)  # otherwise, we're already on that page.
         
         driver.switch_to.frame(driver.find_element_by_css_selector('#kplayer_ifp'))
         # Get the script
@@ -112,7 +111,8 @@ def main():
         js = json.loads(data)
         dl_link = js["entryResult"]["meta"]["downloadUrl"]
         title = js["entryResult"]["meta"]["name"]
-    # Download video
+        print("Downloading video " + str(video_urls.index(url)+1) + " out of " + str(video_index) + ": " + title)
+        # Download video
         ydl_opts = {"outtmpl": title + ".mp4"}
         with youtube_dl.YoutubeDL(ydl_opts) as ydl:
             ydl.download([dl_link])
